@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic Snake Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper" class="game-container">
+        
+        <!-- MAIN MENU SCREEN -->
+        <div id="screen-menu" class="screen active">
+            <h1 class="main-title">SNAKE CLASSIC</h1>
+            <div class="high-score-wrapper">High Score: <span id="highScoreMenu">0</span></div>
+            <button id="playMenuBtn" class="neon-btn">Play Game</button>
+            <button id="leaderboardMenuBtn" class="neon-btn">Leaderboard</button>
+            <button id="settingsMenuBtn" class="neon-btn">Settings</button>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="screen-game" class="screen hidden">
+            <!-- HUD (Heads-up Display) -->
+            <div class="hud">
+                <div class="score">Score: <span id="currentScore">0</span></div>
+                <div class="high-score">High Score: <span id="highScore">0</span></div>
+            </div>
+            
+            <!-- Canvas and Overlays Container -->
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+                
+                <!-- Game Over Screen Overlay -->
+                <div id="gameOverScreen" class="overlay">
+                    <h2>Game Over</h2>
+                    <div class="final-score-display">Score: <span id="finalScore">0</span></div>
+                    <div id="newHighScoreMsg" class="hidden neon-text" style="position: relative;">New High Score!</div>
+                    <button id="playAgainBtn" class="neon-btn">Play Again</button>
+                    <button id="backToMenuBtn" class="neon-btn" style="margin-top:10px; font-size:1rem; padding: 8px 16px;">Main Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS SCREEN -->
+        <div id="screen-settings" class="screen hidden">
+            <h2 class="neon-text">Settings</h2>
+            <div class="settings-group">
+                <h3 style="margin-bottom: 10px;">Difficulty</h3>
+                <div class="difficulty-btns">
+                    <button class="neon-btn diff-btn" data-diff="easy">Easy</button>
+                    <button class="neon-btn diff-btn" data-diff="medium">Medium</button>
+                    <button class="neon-btn diff-btn" data-diff="hard">Hard</button>
+                </div>
+            </div>
+            <button id="saveSettingsBtn" class="neon-btn">Save & Back</button>
+        </div>
+
+        <!-- LEADERBOARD SCREEN -->
+        <div id="screen-leaderboard" class="screen hidden">
+            <h2 class="neon-text">Leaderboard</h2>
+            <p style="margin-bottom: 20px;">Coming soon...</p>
+            <button class="neon-btn back-btn">Back</button>
+        </div>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
