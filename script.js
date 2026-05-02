@@ -4,13 +4,44 @@ const ctx = canvas.getContext('2d');
 
 // Game Constants
 const GRID_SIZE = 20; // 20px per cell
-const TILE_COUNT = canvas.width / GRID_SIZE;
+let tileCountX = 0;
+let tileCountY = 0;
+
+// Set constant canvas dimensions or adjust container
+// CRITICAL FIX: Phải đo từ container khi nó đã VISIBLE.
+// Nếu container đang bị ẩn (display:none), clientWidth = 0 → sai hoàn toàn.
+const CANVAS_BORDER = 4; // border: 2px mỗi bên × 2 = 4px — trừ ra để canvas không tràn container
+function resizeCanvas() {
+    const container = document.querySelector('.canvas-container');
+    
+    // Nếu container chưa visible (width = 0), thoát ra, sẽ được gọi lại sau
+    if (!container || container.clientWidth === 0) return;
+
+    // Trừ border trước khi tính số ô để canvas + border vừa khít container
+    const maxCols = Math.floor((container.clientWidth  - CANVAS_BORDER) / GRID_SIZE);
+    const maxRows = Math.floor((container.clientHeight - CANVAS_BORDER) / GRID_SIZE);
+    
+    tileCountX = maxCols;
+    tileCountY = maxRows;
+    
+    // Ép lại kích thước thực — canvas luôn khớp 100% với số ô lưới, không dư pixel
+    canvas.width  = maxCols * GRID_SIZE;
+    canvas.height = maxRows * GRID_SIZE;
+}
+
+// Khi window resize, tính lại map. Nếu đang chơi, tái spawn mồi để tránh ra ngoài lề.
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    if (currentState === STATE.PLAYING) generateFood();
+});
+// Không gọi resizeCanvas() tại đây — screen-game đang ẩn, container.clientWidth = 0
 
 // Game States
 const STATE = {
     MENU: 0,
     PLAYING: 1,
-    GAMEOVER: 2
+    GAMEOVER: 2,
+    PAUSED: 3
 };
 let currentState = STATE.MENU;
 
@@ -38,23 +69,131 @@ const UIManager = {
         });
         // Show target screen
         document.getElementById(screenId).classList.remove('hidden');
+    },
+
+    // UIManager: Render leaderboard UI (Step 4)
+    renderLeaderboard: function(mode) {
+        // Update active tab buttons
+        document.querySelectorAll('.lb-tab').forEach(tab => {
+            if (tab.dataset.mode === mode) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Render List
+        const list = document.getElementById('leaderboardList');
+        list.innerHTML = '';
+        
+        const data = StorageManager.getLeaderboard(mode);
+        
+        if (data.length === 0) {
+            list.innerHTML = '<li style="text-align:center; padding: 20px; color: #888;">No scores yet! Be the first!</li>';
+            return;
+        }
+
+        data.forEach((item, index) => {
+            const li = document.createElement('li');
+            const rank = index + 1;
+            
+            if (rank === 1) {
+                li.classList.add('rank-1');
+            }
+            
+            li.innerHTML = `
+                <span class="rank">#${rank}</span>
+                <span class="name">${item.name}</span>
+                <span class="score-val">${item.score}</span>
+            `;
+            list.appendChild(li);
+        });
     }
 };
 
-function spawnFood() {
-    let newFood;
-    while (true) {
-        newFood = {
-            x: Math.floor(Math.random() * TILE_COUNT),
-            y: Math.floor(Math.random() * TILE_COUNT)
-        };
-        // Ensure food does not spawn overlapping the snake
-        let onSnake = snake.some(segment => segment.x === newFood.x && segment.y === newFood.y);
-        if (!onSnake) {
-            break;
+// Storage Manager for Leaderboard (Pure Frontend)
+const StorageManager = {
+    getKey: () => 'snake_leaderboard',
+    
+    getStorage: function() {
+        const data = localStorage.getItem(this.getKey());
+        if (data) return JSON.parse(data);
+        return { easy: [], medium: [], hard: [] };
+    },
+    
+    saveStorage: function(data) {
+        localStorage.setItem(this.getKey(), JSON.stringify(data));
+    },
+    
+    getLeaderboard: function(mode) {
+        const data = this.getStorage();
+        return data[mode] || [];
+    },
+    
+    checkIfTop10: function(score, mode) {
+        if (score <= 0) return false;
+        const leaderboard = this.getLeaderboard(mode);
+        if (leaderboard.length < 10) return true;
+        // List is sorted descending, so the lowest score is at the end
+        return score > leaderboard[leaderboard.length - 1].score;
+    },
+    
+    saveScore: function(name, score, mode) {
+        const data = this.getStorage();
+        if (!data[mode]) data[mode] = [];
+        
+        data[mode].push({
+            name: name || "Anonymous",
+            score: parseInt(score, 10),
+            timestamp: Date.now() // BONUS: Lưu timestamp
+        });
+        
+        // Gọi hàm sort được yêu cầu
+        this.sortLeaderboard(data[mode]);
+        
+        // Retain only top 10
+        data[mode] = data[mode].slice(0, 10);
+        this.saveStorage(data);
+    },
+
+    // Hàm Sort Leaderboard chuẩn yêu cầu Bug 3
+    sortLeaderboard: function(leaderboardArray) {
+        leaderboardArray.sort((a, b) => {
+            // Tiêu chí 1: Điểm giảm dần
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+            // Tiêu chí 2 (Tied Score): Ai chơi trước xếp trên (tăng dần)
+            return a.timestamp - b.timestamp;
+        });
+    }
+};
+
+function generateFood() {
+    // Đảm bảo x trong [0, maxCols - 1] và y trong [0, maxRows - 1]
+    const freeSpots = [];
+    let maxCols = tileCountX;
+    let maxRows = tileCountY;
+
+    for (let x = 0; x < maxCols; x++) {
+        for (let y = 0; y < maxRows; y++) {
+            // Kiểm tra xem tọa độ này có đang bị thân rắn đè lên không
+            let isOccupied = snake.some(segment => segment.x === x && segment.y === y);
+            if (!isOccupied) {
+                freeSpots.push({ x, y });
+            }
         }
     }
-    food = newFood;
+
+    // Edge case: Rắn đã ăn full bản đồ
+    if (freeSpots.length === 0) {
+        food = { x: -1, y: -1 }; // Giấu mồi hoặc trigger Win Game
+        return;
+    }
+
+    // Pick ngẫu nhiên 1 ô trong danh sách các ô an toàn
+    const randomIndex = Math.floor(Math.random() * freeSpots.length);
+    food = freeSpots[randomIndex];
 }
 
 // Movement & Input
@@ -63,8 +202,11 @@ let dy = 0;
 let inputQueue = [];
 
 // Settings & Game Loop setup
-const defaultSettings = { difficulty: 'medium' };
+const defaultSettings = { difficulty: 'medium', sound: true };
 let settings = JSON.parse(localStorage.getItem('snakeSettings')) || defaultSettings;
+
+// Handle missing fields gracefully for existing users
+if (typeof settings.sound === 'undefined') settings.sound = true;
 
 const DIFF_SPEEDS = {
     easy: 150, // ms per frame (slowest)
@@ -73,10 +215,11 @@ const DIFF_SPEEDS = {
 };
 
 let lastRenderTime = 0;
+let animationId; // BUG 3 FIX: Lưu trữ ID để quản lý vòng lặp (tránh double loop)
 
 // Main Game Loop using requestAnimationFrame
 function gameLoop(currentTime) {
-    window.requestAnimationFrame(gameLoop);
+    animationId = window.requestAnimationFrame(gameLoop);
     
     // Throttle frame rate based on chosen difficulty tick rate
     const tickRate = DIFF_SPEEDS[settings.difficulty];
@@ -108,21 +251,23 @@ function update() {
     }
 
     // Calculate new head position
-    const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+    const nextX = snake[0].x + dx;
+    const nextY = snake[0].y + dy;
+    const newHead = { x: nextX, y: nextY };
     
-    // Check for collisions (Step 5)
-    if (checkCollision(head)) {
+    // BUG 1 FIX (Step 1): Kiểm tra Wall Collision và Self Collision ngay TRƯỚC LÚC vẽ hay update body
+    if (checkWallCollision(nextX, nextY) || checkSelfCollision(newHead)) {
         handleGameOver();
-        return;
+        return; // Dừng lập tức, không delay thêm 1 frame nào
     }
     
-    // Add new head
-    snake.unshift(head);
+    // Add new head if safe
+    snake.unshift(newHead);
     
     // Check if food is eaten
-    if (head.x === food.x && head.y === food.y) {
+    if (newHead.x === food.x && newHead.y === food.y) {
         score += 10;
-        spawnFood();
+        generateFood();
         // Do NOT pop the tail to let the snake grow
     } else {
         // Remove tail
@@ -130,26 +275,28 @@ function update() {
     }
 }
 
-function checkCollision(head) {
-    // 1. Wall collision
-    if (head.x < 0 || head.x >= TILE_COUNT || head.y < 0 || head.y >= TILE_COUNT) {
-        return true;
-    }
-    
-    // 2. Self collision
+// Hàm Test va chạm với viền (Tách rời theo chuẩn)
+function checkWallCollision(nextX, nextY) {
+    return (nextX < 0 || nextX >= tileCountX || nextY < 0 || nextY >= tileCountY);
+}
+
+// Hàm Test va chạm với thân (Tách rời theo chuẩn)
+function checkSelfCollision(head) {
     for (let i = 0; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
         }
     }
-    
     return false;
 }
 
 function handleGameOver() {
     currentState = STATE.GAMEOVER;
     
-    // High Score logic
+    // BUG 3 FIX: Hủy requestAnimationFrame đang tồn tại phòng loop chạy nền vô nghĩa sau khi Game Over
+    cancelAnimationFrame(animationId);
+    
+    // High Score logic (General)
     const newHighScoreMsg = document.getElementById('newHighScoreMsg');
     if (score > highScore) {
         highScore = score;
@@ -159,6 +306,21 @@ function handleGameOver() {
         newHighScoreMsg.classList.remove('hidden');
     } else {
         newHighScoreMsg.classList.add('hidden');
+    }
+
+    // Leaderboard logic: Ask for name
+    const isTop10 = StorageManager.checkIfTop10(score, settings.difficulty);
+    const nameSection = document.getElementById('nameInputSection');
+    const btnSection = document.getElementById('gameOverBtns');
+
+    if (isTop10) {
+        nameSection.classList.remove('hidden');
+        btnSection.classList.add('hidden'); // Hide normal buttons temporarily
+        // Auto focus
+        setTimeout(() => document.getElementById('playerNameInput').focus(), 100);
+    } else {
+        nameSection.classList.add('hidden');
+        btnSection.classList.remove('hidden');
     }
 
     document.getElementById('gameOverScreen').classList.add('active');
@@ -204,11 +366,23 @@ function draw() {
 // Input Handling
 window.addEventListener('keydown', e => {
     // Prevent default scrolling for arrow keys
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
         e.preventDefault();
     }
     
-    // Only accept input if the game is playing
+    // Handle Pause/Resume/Quit
+    if (currentState === STATE.PLAYING && (e.key === 'r' || e.key === 'R')) {
+        pauseGame();
+        return;
+    } else if (currentState === STATE.PAUSED && (e.key === 'r' || e.key === 'R')) {
+        resumeGame();
+        return;
+    } else if (currentState === STATE.PLAYING && (e.key === 'q' || e.key === 'Q')) {
+        quitGame();
+        return;
+    }
+
+    // Only accept movement input if the game is playing
     if (currentState !== STATE.PLAYING) return;
 
     let newDx = 0;
@@ -245,33 +419,90 @@ window.addEventListener('keydown', e => {
     }
 });
 
-function resetGame() {
-    // Reset data
-    snake = [
-        { x: 10, y: 10 },
-        { x: 9, y: 10 },
-        { x: 8, y: 10 }
-    ];
-    score = 0;
-    dx = 1;
-    dy = 0;
-    inputQueue = [];
-    spawnFood();
-    
-    // Reset UI
-    document.getElementById('currentScore').innerText = score;
-    document.getElementById('gameOverScreen').classList.remove('active');
-    
-    // UI Manager: Switch to Game Screen
-    UIManager.switchScreen('screen-game');
-    
-    // Change State
+function pauseGame() {
+    currentState = STATE.PAUSED;
+    document.getElementById('pauseOverlay').classList.add('active');
+    cancelAnimationFrame(animationId); // BUG 3 FIX: ngắt Loop khi nghỉ
+}
+
+function resumeGame() {
     currentState = STATE.PLAYING;
+    document.getElementById('pauseOverlay').classList.remove('active');
+    lastRenderTime = document.timeline ? document.timeline.currentTime : performance.now(); // Sync timer so no skipped frames
+    animationId = window.requestAnimationFrame(gameLoop); // Gọi lại
+}
+
+function quitGame() {
+    currentState = STATE.MENU;
+    document.getElementById('pauseOverlay').classList.remove('active');
+    document.getElementById('gameOverScreen').classList.remove('active');
+    UIManager.switchScreen('screen-menu');
+    
+    // BUG 3 FIX: Cleanup Ghosting + Clear interval hoàn toàn
+    cancelAnimationFrame(animationId);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function resetGame() {
+    // Dọn dẹp Animation cũ trước khi tạo lại để ngăn tốc độ bị double
+    if (animationId) cancelAnimationFrame(animationId);
+    
+    // Reset UI trước — screen-game phải VISIBLE trước khi đo kích thước canvas
+    document.getElementById('currentScore').innerText = 0;
+    document.getElementById('gameOverScreen').classList.remove('active');
+    document.getElementById('pauseOverlay').classList.remove('active');
+    document.getElementById('nameInputSection').classList.add('hidden');
+    UIManager.switchScreen('screen-game');
+
+    // Dùng requestAnimationFrame để đảm bảo DOM đã render và container đã visible
+    // trước khi đo clientWidth/clientHeight
+    requestAnimationFrame(() => {
+        // CRITICAL: Gọi resizeCanvas() SAU khi screen-game đã visible
+        resizeCanvas();
+
+        // Rắn spawn ở giữa map
+        const cx = Math.floor(tileCountX / 2);
+        const cy = Math.floor(tileCountY / 2);
+        snake = [
+            { x: cx,     y: cy },
+            { x: cx - 1, y: cy },
+            { x: cx - 2, y: cy }
+        ];
+        score = 0;
+        dx = 1;
+        dy = 0;
+        inputQueue = [];
+        
+        // Spawn mồi sau khi đã biết kích thước map thực
+        generateFood();
+        
+        // Khởi động Game Loop
+        currentState = STATE.PLAYING;
+        lastRenderTime = document.timeline ? document.timeline.currentTime : performance.now();
+        animationId = window.requestAnimationFrame(gameLoop);
+    });
 }
 
 // UI Event Listeners - Start/Play triggers
 document.getElementById('playMenuBtn').addEventListener('click', resetGame);
 document.getElementById('playAgainBtn').addEventListener('click', resetGame);
+
+// Leaderboard Input Submit Event
+document.getElementById('submitNameBtn').addEventListener('click', () => {
+    let name = document.getElementById('playerNameInput').value;
+    // Basic sanitization
+    name = name.replace(/[^a-zA-Z0-9 ]/g, '').trim().substring(0, 10);
+    if (!name) name = "Anonymous";
+    
+    // Save to local storage
+    StorageManager.saveScore(name, score, settings.difficulty);
+    
+    // Switch to Leaderboard
+    document.getElementById('gameOverScreen').classList.remove('active');
+    currentState = STATE.MENU;
+    UIManager.renderLeaderboard(settings.difficulty);
+    UIManager.switchScreen('screen-leaderboard');
+});
 
 // Additional Screen Switches
 document.getElementById('backToMenuBtn').addEventListener('click', () => {
@@ -279,41 +510,51 @@ document.getElementById('backToMenuBtn').addEventListener('click', () => {
     currentState = STATE.MENU;
     UIManager.switchScreen('screen-menu');
 });
-document.getElementById('leaderboardMenuBtn').addEventListener('click', () => UIManager.switchScreen('screen-leaderboard'));
 
-// Settings Logic & Events
-const diffBtns = document.querySelectorAll('.diff-btn');
+// Pause Menu Events
+document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+document.getElementById('quitBtn').addEventListener('click', quitGame);
 
-function renderSettingsUI() {
-    diffBtns.forEach(btn => {
-        if (btn.dataset.diff === settings.difficulty) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-}
+// Menu -> Leaderboard
+document.getElementById('leaderboardMenuBtn').addEventListener('click', () => {
+    UIManager.renderLeaderboard(settings.difficulty); // default to current settings
+    UIManager.switchScreen('screen-leaderboard');
+});
 
-// Attach click to Difficulty Buttons (Temp change before save)
-let tempDifficulty = settings.difficulty;
-diffBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        tempDifficulty = e.target.dataset.diff;
-        diffBtns.forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
+// Leaderboard Tabs Clicking
+document.querySelectorAll('.lb-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        const mode = e.target.dataset.mode;
+        UIManager.renderLeaderboard(mode);
     });
 });
 
-// Save & Back Button in Settings
+// Settings Logic & Events
+const difficultySelect = document.getElementById('difficultySelect');
+const soundToggle = document.getElementById('soundToggle');
+
+function renderSettingsUI() {
+    difficultySelect.value = settings.difficulty;
+    soundToggle.checked = settings.sound;
+}
+
+// Save Settings Button
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-    settings.difficulty = tempDifficulty; // Apply temp selection to real settings
+    settings.difficulty = difficultySelect.value;
+    settings.sound = soundToggle.checked;
     localStorage.setItem('snakeSettings', JSON.stringify(settings));
+    UIManager.switchScreen('screen-menu');
+});
+
+// Cancel Settings Button
+document.getElementById('cancelSettingsBtn').addEventListener('click', () => {
+    // Revert without saving
     UIManager.switchScreen('screen-menu');
 });
 
 // Open Settings Menu
 document.getElementById('settingsMenuBtn').addEventListener('click', () => {
-    tempDifficulty = settings.difficulty; // Reset temp memory
     renderSettingsUI();
     UIManager.switchScreen('screen-settings');
 });

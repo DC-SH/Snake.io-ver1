@@ -31,45 +31,62 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 95%;
-    max-width: 500px;
+    width: 95vw;
+    height: 95vh;
+    max-width: 1200px;
+    overflow: hidden;
 }
 
 .hud {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    margin-bottom: 15px;
+    /* margin-bottom removed */
+    padding: 15px;
     font-size: 1.2rem;
     font-weight: bold;
+    /* position: absolute; removed so it stacks above the canvas, not on top of it */
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through */
 }
 
 .score {
     color: var(--neon-blue);
-    text-shadow: 0 0 5px var(--neon-blue);
+    text-shadow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue);
 }
 
 .high-score {
     color: var(--neon-green);
-    text-shadow: 0 0 5px var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green);
+}
+
+#screen-game {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative; /* For HUD overlay */
 }
 
 .canvas-container {
     position: relative;
     width: 100%;
-    /* Ensures 1:1 aspect ratio */
-    aspect-ratio: 1 / 1; 
+    height: 100%;
+    flex-grow: 1; /* Take up all remaining space */
     background-color: var(--canvas-bg);
-    border: 2px solid #333;
-    border-radius: 8px;
     overflow: hidden;
+    display: flex;
+    justify-content: center; /* Center the canvas inside */
+    align-items: center;
 }
 
 canvas {
-    width: 100%;
-    height: 100%;
+    /* Exact pixel rendering */
     display: block;
-    image-rendering: pixelated;
+    background: transparent;
+    border: 2px solid var(--neon-green);
+    box-shadow: 0 0 15px var(--neon-green);
+    border-radius: 8px;
 }
 
 /* Overlay Base Styles */
@@ -139,28 +156,224 @@ canvas {
     display: none;
 } /* fallback for the game over message, since we changed .hidden to position absolute */
 
-/* Settings specific styling */
-.settings-group {
-    text-align: center;
-    margin-bottom: 30px;
+/* Component Panels (UI Container Standards) */
+.panel {
+    border: 2px solid var(--neon-blue);
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    background: rgba(0, 0, 10, 0.6);
+    margin-bottom: 25px;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    /* For centering flex children securely */
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.settings-group h3 {
-    color: var(--text-color);
-    letter-spacing: 2px;
-}
-
-.difficulty-btns {
+.setting-row {
     display: flex;
-    gap: 15px;
-    margin-top: 15px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    color: var(--text-color);
 }
 
-.diff-btn.active {
+select.neon-input option {
+    background-color: var(--container-bg);
+    color: var(--text-color);
+}
+
+.neon-checkbox {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--neon-green);
+    cursor: pointer;
+}
+
+/* Controls List */
+.controls-title {
+    text-align: center;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+    margin: 25px 0 15px;
+    letter-spacing: 2px;
+    font-size: 1.4rem;
+}
+
+.controls-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-item {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+    padding-bottom: 5px;
+    font-size: 1rem;
+    color: #ddd;
+}
+
+.control-item span:first-child {
+    color: var(--neon-blue);
+    font-weight: bold;
+}
+
+/* Settings Action Buttons */
+.settings-actions {
+    display: flex;
+    gap: 20px;
+}
+
+.cancel-btn {
+    background: #2a2a35;
+    color: #aaa;
+    border-color: #555;
+    box-shadow: none;
+}
+.cancel-btn:hover {
+    background: #3a3a45;
+    color: #fff;
+    box-shadow: 0 0 5px rgba(255,255,255,0.3);
+}
+
+.save-btn {
     background: var(--neon-green);
     color: #000;
     border-color: var(--neon-green);
-    box-shadow: 0 0 15px var(--neon-green) inset, 0 0 20px var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green) inset, 0 0 15px var(--neon-green);
+    font-weight: bold;
+}
+.save-btn:hover {
+    background: #2ab811;
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-green) inset, 0 0 25px var(--neon-green);
+}
+
+/* Form Inputs */
+.neon-input {
+    background: transparent;
+    border: 2px solid var(--neon-blue);
+    color: var(--text-color);
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 5px;
+    outline: none;
+    text-align: center;
+    box-shadow: 0 0 5px var(--neon-blue) inset, 0 0 5px var(--neon-blue);
+}
+.neon-input:focus {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green) inset, 0 0 10px var(--neon-green);
+}
+.hidden {
+    opacity: 0 !important;
+}
+
+/* Leaderboard */
+.lb-tabs {
+    display: flex;
+    gap: 10px;
+}
+.lb-tab.active {
+    background: var(--neon-blue);
+    color: #000;
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px var(--neon-blue) inset, 0 0 15px var(--neon-blue);
+}
+
+#screen-leaderboard {
+    width: 90%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.leaderboard-container {
+    /* specific overrides to uniform .panel */
+    padding: 10px;
+    margin-bottom: 0px; 
+}
+
+#leaderboardList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#leaderboardList::-webkit-scrollbar {
+    width: 8px;
+}
+#leaderboardList::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+#leaderboardList::-webkit-scrollbar-thumb {
+    background: var(--neon-blue);
+    border-radius: 4px;
+    box-shadow: inset 0 0 5px var(--neon-blue);
+}
+
+#leaderboardList li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 5px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    font-size: 1.1rem;
+}
+
+#leaderboardList li:last-child {
+    border-bottom: none;
+}
+
+/* Highlight TOP 1 - Bonus */
+#leaderboardList li.rank-1 {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid gold;
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    font-weight: bold;
+    color: gold;
+    transform: scale(1.02);
+    margin-bottom: 5px;
+}
+#leaderboardList li.rank-1 .name {
+    color: #fff;
+    text-shadow: 0 0 5px gold;
+}
+
+.rank {
+    width: 50px;
+    color: var(--text-color);
+}
+.name {
+    flex-grow: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 10px;
+}
+.score-val {
+    width: 80px;
+    text-align: right;
+    color: var(--neon-green);
+    font-weight: bold;
+}
+
+/* Rank 1 Highlight */
+.rank-1 {
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700;
+    font-weight: bold;
+    transform: scale(1.05);
+}
+.rank-1 .name, .rank-1 .score-val, .rank-1 .rank {
+    color: #ffd700;
 }
 
 /* Typography styles */

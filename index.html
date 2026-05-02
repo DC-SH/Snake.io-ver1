@@ -28,38 +28,91 @@
             
             <!-- Canvas and Overlays Container -->
             <div class="canvas-container">
-                <canvas id="gameCanvas" width="400" height="400"></canvas>
+                <canvas id="gameCanvas"></canvas>
                 
                 <!-- Game Over Screen Overlay -->
                 <div id="gameOverScreen" class="overlay">
                     <h2>Game Over</h2>
                     <div class="final-score-display">Score: <span id="finalScore">0</span></div>
                     <div id="newHighScoreMsg" class="hidden neon-text" style="position: relative;">New High Score!</div>
-                    <button id="playAgainBtn" class="neon-btn">Play Again</button>
-                    <button id="backToMenuBtn" class="neon-btn" style="margin-top:10px; font-size:1rem; padding: 8px 16px;">Main Menu</button>
+                    
+                    <!-- Name Input (For Top 10) -->
+                    <div id="nameInputSection" class="hidden" style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center;">
+                        <p style="color: var(--neon-green); margin-bottom: 10px;">You made it to the Top 10!</p>
+                        <input type="text" id="playerNameInput" maxlength="10" placeholder="Enter Name" class="neon-input">
+                        <button id="submitNameBtn" class="neon-btn" style="margin-top: 10px; font-size:1rem; padding: 8px 16px;">Submit Score</button>
+                    </div>
+
+                    <!-- Normal Game Over Buttons -->
+                    <div id="gameOverBtns" style="display: flex; flex-direction: column; align-items: center;">
+                        <button id="playAgainBtn" class="neon-btn">Play Again</button>
+                        <button id="backToMenuBtn" class="neon-btn" style="margin-top:10px; font-size:1rem; padding: 8px 16px;">Main Menu</button>
+                    </div>
+                </div>
+
+                <!-- Pause Screen Overlay -->
+                <div id="pauseOverlay" class="overlay">
+                    <h2 class="neon-text" style="font-size: 3rem; margin-bottom: 30px;">PAUSED</h2>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                        <button id="resumeBtn" class="neon-btn">Resume</button>
+                        <button id="restartBtn" class="neon-btn">Restart</button>
+                        <button id="quitBtn" class="neon-btn" style="font-size:1rem; padding: 8px 16px; border-color: #ff0055; box-shadow: 0 0 5px #ff0055; color: #ff0055;">Quit to Menu</button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- SETTINGS SCREEN -->
         <div id="screen-settings" class="screen hidden">
-            <h2 class="neon-text">Settings</h2>
-            <div class="settings-group">
-                <h3 style="margin-bottom: 10px;">Difficulty</h3>
-                <div class="difficulty-btns">
-                    <button class="neon-btn diff-btn" data-diff="easy">Easy</button>
-                    <button class="neon-btn diff-btn" data-diff="medium">Medium</button>
-                    <button class="neon-btn diff-btn" data-diff="hard">Hard</button>
+            <h2 class="neon-text main-title" style="font-size: 2.5rem; margin-bottom: 20px;">SETTINGS</h2>
+            
+            <div class="panel">
+                <div class="setting-row">
+                    <label for="difficultySelect">Difficulty:</label>
+                    <select id="difficultySelect" class="neon-input">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <label for="soundToggle">Sound:</label>
+                    <input type="checkbox" id="soundToggle" class="neon-checkbox" checked>
+                </div>
+
+                <h3 class="controls-title">CONTROLS</h3>
+                <div class="controls-list">
+                    <div class="control-item"><span>W / ↑</span><span>Move Up</span></div>
+                    <div class="control-item"><span>S / ↓</span><span>Move Down</span></div>
+                    <div class="control-item"><span>A / ←</span><span>Move Left</span></div>
+                    <div class="control-item"><span>D / →</span><span>Move Right</span></div>
+                    <div class="control-item"><span>SPACE</span><span>Restart</span></div>
+                    <div class="control-item"><span>Click II</span><span>Pause/Resume</span></div>
                 </div>
             </div>
-            <button id="saveSettingsBtn" class="neon-btn">Save & Back</button>
+
+            <div class="settings-actions">
+                <button id="cancelSettingsBtn" class="neon-btn cancel-btn">CANCEL</button>
+                <button id="saveSettingsBtn" class="neon-btn save-btn">SAVE</button>
+            </div>
         </div>
 
         <!-- LEADERBOARD SCREEN -->
         <div id="screen-leaderboard" class="screen hidden">
             <h2 class="neon-text">Leaderboard</h2>
-            <p style="margin-bottom: 20px;">Coming soon...</p>
-            <button class="neon-btn back-btn">Back</button>
+            <div class="lb-tabs" style="margin-bottom: 20px;">
+                <button class="lb-tab neon-btn" data-mode="easy" style="padding: 5px 10px; font-size: 0.9rem;">Easy</button>
+                <button class="lb-tab neon-btn active" data-mode="medium" style="padding: 5px 10px; font-size: 0.9rem;">Medium</button>
+                <button class="lb-tab neon-btn" data-mode="hard" style="padding: 5px 10px; font-size: 0.9rem;">Hard</button>
+            </div>
+            
+            <div class="panel leaderboard-container">
+                <ul id="leaderboardList">
+                    <!-- Javascript will render <li> tags here -->
+                </ul>
+            </div>
+            
+            <button class="neon-btn back-btn" style="margin-top: 20px;">Back to Menu</button>
         </div>
 
     </div>
