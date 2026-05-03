@@ -68,6 +68,14 @@
             
             <div class="panel">
                 <div class="setting-row">
+                    <label for="levelSelect">Level:</label>
+                    <select id="levelSelect" class="neon-input">
+                        <option value="1">Level 1</option>
+                        <option value="2">Level 2</option>
+                        <option value="3">Level 3</option>
+                    </select>
+                </div>
+                <div class="setting-row">
                     <label for="difficultySelect">Difficulty:</label>
                     <select id="difficultySelect" class="neon-input">
                         <option value="easy">Easy</option>
@@ -99,11 +107,20 @@
 
         <!-- LEADERBOARD SCREEN -->
         <div id="screen-leaderboard" class="screen hidden">
-            <h2 class="neon-text">Leaderboard</h2>
-            <div class="lb-tabs" style="margin-bottom: 20px;">
-                <button class="lb-tab neon-btn" data-mode="easy" style="padding: 5px 10px; font-size: 0.9rem;">Easy</button>
-                <button class="lb-tab neon-btn active" data-mode="medium" style="padding: 5px 10px; font-size: 0.9rem;">Medium</button>
-                <button class="lb-tab neon-btn" data-mode="hard" style="padding: 5px 10px; font-size: 0.9rem;">Hard</button>
+            <h2 class="neon-text" style="font-size: 2.5rem; margin-bottom: 20px;">Leaderboard</h2>
+            
+            <!-- Filters -->
+            <div class="lb-filters" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <div class="lb-tabs lb-level-tabs" style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="lb-tab lb-level-tab neon-btn active" data-level="1" style="padding: 5px 10px; font-size: 0.9rem;">Level 1</button>
+                    <button class="lb-tab lb-level-tab neon-btn" data-level="2" style="padding: 5px 10px; font-size: 0.9rem;">Level 2</button>
+                    <button class="lb-tab lb-level-tab neon-btn" data-level="3" style="padding: 5px 10px; font-size: 0.9rem;">Level 3</button>
+                </div>
+                <div class="lb-tabs lb-diff-tabs" style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="lb-tab lb-diff-tab neon-btn" data-mode="easy" style="padding: 5px 10px; font-size: 0.9rem;">Easy</button>
+                    <button class="lb-tab lb-diff-tab neon-btn active" data-mode="medium" style="padding: 5px 10px; font-size: 0.9rem;">Medium</button>
+                    <button class="lb-tab lb-diff-tab neon-btn" data-mode="hard" style="padding: 5px 10px; font-size: 0.9rem;">Hard</button>
+                </div>
             </div>
             
             <div class="panel leaderboard-container">
