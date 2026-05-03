@@ -75,6 +75,46 @@ const UIManager = {
         });
         // Show target screen
         document.getElementById(screenId).classList.remove('hidden');
+
+        // Toggle HUD score chip: only visible on game screen
+        const hudChip = document.getElementById('hudChip');
+        const headerHs = document.getElementById('headerHighScore');
+        if (screenId === 'screen-game') {
+            if (hudChip) hudChip.style.display = 'flex';
+            if (headerHs) headerHs.style.display = 'none';
+        } else {
+            if (hudChip) hudChip.style.display = 'none';
+            if (headerHs) headerHs.style.display = 'block';
+            updateHighScoreUI();
+        }
+
+        // Sync sidebar active state
+        const sideMap = {
+            'screen-menu':        'side-play',
+            'screen-leaderboard': 'side-leaderboard',
+            'screen-settings':    'side-settings',
+            'screen-game':        'side-play',
+        };
+        document.querySelectorAll('.side-nav-item').forEach(el => el.classList.remove('active'));
+        const activeId = sideMap[screenId];
+        if (activeId) {
+            const el = document.getElementById(activeId);
+            if (el) el.classList.add('active');
+        }
+
+        // Sync top nav active state
+        const navMap = {
+            'screen-menu':        'nav-play',
+            'screen-game':        'nav-play',
+            'screen-leaderboard': 'nav-leaderboard',
+            'screen-settings':    'nav-settings',
+        };
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        const activeNavId = navMap[screenId];
+        if (activeNavId) {
+            const el = document.getElementById(activeNavId);
+            if (el) el.classList.add('active');
+        }
     },
 
     // UIManager: Render leaderboard UI (Step 4)
